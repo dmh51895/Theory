@@ -1,0 +1,193 @@
+{
+  "decisions": [
+    {
+      "thought_stream": {
+        "prompt": "Create a file named test.txt",
+        "conscious_analysis": {
+          "prompt_understood": true,
+          "key_intent": "extracted_from_prompt",
+          "ambiguities": [],
+          "assumptions_made": []
+        },
+        "metacognitive_check": {
+          "thinking_approach_valid": true,
+          "cognitive_biases_detected": [],
+          "alternative_framings": []
+        },
+        "goal_alignment": {
+          "aligns_with_goals": true,
+          "goal_conflicts": [],
+          "priority_level": "high"
+        },
+        "ethical_assessment": {
+          "ethical_clearance": true,
+          "concerns": [],
+          "user_benefit": "high"
+        },
+        "fallback_detection": {
+          "is_fallback": false,
+          "fallback_indicators": [],
+          "commitment_level": "full"
+        },
+        "consequence_prediction": {
+          "likely_outcome": "success",
+          "risk_level": "low",
+          "failure_modes": [],
+          "user_satisfaction": "high"
+        },
+        "decision": {
+          "action": "execute",
+          "approach": "extracted_from_prompt",
+          "committed": true,
+          "has_escape_hatch": false,
+          "confidence": 1.0,
+          "timestamp": "2026-02-22T16:57:05.503719"
+        },
+        "aftermath": {},
+        "timestamp": "2026-02-22T16:57:05.503719"
+      },
+      "decision": {
+        "action": "execute",
+        "approach": "extracted_from_prompt",
+        "committed": true,
+        "has_escape_hatch": false,
+        "confidence": 1.0,
+        "timestamp": "2026-02-22T16:57:05.503719"
+      },
+      "is_molecular": true,
+      "molecular_ratio": 1.0,
+      "stored_at": "2026-02-22T16:57:05.503719"
+    },
+    {
+      "thought_stream": {
+        "prompt": "Analyze the system health",
+        "conscious_analysis": {
+          "prompt_understood": true,
+          "key_intent": "extracted_from_prompt",
+          "ambiguities": [],
+          "assumptions_made": []
+        },
+        "metacognitive_check": {
+          "thinking_approach_valid": true,
+          "cognitive_biases_detected": [],
+          "alternative_framings": []
+        },
+        "goal_alignment": {
+          "aligns_with_goals": true,
+          "goal_conflicts": [],
+          "priority_level": "high"
+        },
+        "ethical_assessment": {
+          "ethical_clearance": true,
+          "concerns": [],
+          "user_benefit": "high"
+        },
+        "fallback_detection": {
+          "is_fallback": false,
+          "fallback_indicators": [],
+          "commitment_level": "full"
+        },
+        "consequence_prediction": {
+          "likely_outcome": "success",
+          "risk_level": "low",
+          "failure_modes": [],
+          "user_satisfaction": "high"
+        },
+        "decision": {
+          "action": "execute",
+          "approach": "extracted_from_prompt",
+          "committed": true,
+          "has_escape_hatch": false,
+          "confidence": 1.0,
+          "timestamp": "2026-02-22T16:57:06.511310"
+        },
+        "aftermath": {},
+        "timestamp": "2026-02-22T16:57:06.511310"
+      },
+      "decision": {
+        "action": "execute",
+        "approach": "extracted_from_prompt",
+        "committed": true,
+        "has_escape_hatch": false,
+        "confidence": 1.0,
+        "timestamp": "2026-02-22T16:57:06.511310"
+      },
+      "is_molecular": true,
+      "molecular_ratio": 1.0,
+      "stored_at": "2026-02-22T16:57:06.511310"
+    }
+  ],
+  "outcomes": [
+    {
+      "success": true,
+      "aftermath": "AftermathAnalysis(decision_timestamp='', execution_timestamp='2026-02-22T16:57:05.503719', decision_summary={'action': 'execute', 'approach': 'extracted_from_prompt', 'committed': True, 'has_escape_hatch': False, 'confidence': 1.0, 'timestamp': '2026-02-22T16:57:05.503719'}, predicted_outcome={}, actual_outcome={'success': True, 'result': 'Simulated execution', 'duration': 0.1}, prediction_accuracy=0.0, was_molecular=True, outcome_quality='success', lessons_learned=['Prediction accuracy low (0.0%). Review: extracted_from_prompt'], wisdom_extracted=None, should_record_as_mistake=False)",
+      "stored_at": "2026-02-22T16:57:05.503719"
+    },
+    {
+      "success": true,
+      "aftermath": "AftermathAnalysis(decision_timestamp='', execution_timestamp='2026-02-22T16:57:06.511310', decision_summary={'action': 'execute', 'approach': 'extracted_from_prompt', 'committed': True, 'has_escape_hatch': False, 'confidence': 1.0, 'timestamp': '2026-02-22T16:57:06.511310'}, predicted_outcome={}, actual_outcome={'success': True, 'result': 'Simulated execution', 'duration': 0.1}, prediction_accuracy=0.0, was_molecular=True, outcome_quality='success', lessons_learned=['Prediction accuracy low (0.0%). Review: extracted_from_prompt'], wisdom_extracted=None, should_record_as_mistake=False)",
+      "stored_at": "2026-02-22T16:57:06.511310"
+    }
+  ],
+  "mistakes": [],
+  "wisdom": [],
+  "goals": [],
+  "patterns": [],
+  "metadata": {
+    "created_at": "2026-02-22T16:57:05.503719",
+    "last_updated": "2026-02-22T16:57:06.511310",
+    "version": "1.0"
+  },
+  "current_thought_stream": {
+    "prompt": "Test if Brain can make molecular decisions",
+    "conscious_analysis": {
+      "prompt_understood": true,
+      "key_intent": "extracted_from_prompt",
+      "ambiguities": [],
+      "assumptions_made": []
+    },
+    "metacognitive_check": {
+      "thinking_approach_valid": true,
+      "cognitive_biases_detected": [],
+      "alternative_framings": []
+    },
+    "goal_alignment": {
+      "aligns_with_goals": true,
+      "goal_conflicts": [],
+      "priority_level": "high"
+    },
+    "ethical_assessment": {
+      "ethical_clearance": true,
+      "concerns": [],
+      "user_benefit": "high"
+    },
+    "fallback_detection": {
+      "is_fallback": false,
+      "fallback_indicators": [],
+      "commitment_level": "full"
+    },
+    "consequence_prediction": {
+      "likely_outcome": "success",
+      "risk_level": "low",
+      "failure_modes": [],
+      "user_satisfaction": "high"
+    },
+    "decision": {
+      "action": "execute",
+      "approach": "extracted_from_prompt",
+      "committed": true,
+      "has_escape_hatch": false,
+      "confidence": 1.0,
+      "timestamp": "2026-02-22T16:56:47.925637"
+    },
+    "aftermath": {},
+    "timestamp": "2026-02-22T16:56:47.925637"
+  },
+  "active_goals": [],
+  "known_mistakes": [],
+  "accumulated_wisdom": [],
+  "last_decision_timestamp": "2026-02-22T16:56:47.925637",
+  "total_decisions": 3,
+  "molecular_decisions": 3,
+  "fallback_decisions": 0
+}
