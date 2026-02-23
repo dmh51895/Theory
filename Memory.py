@@ -72,12 +72,23 @@ class Memory:
                 print(f"Warning: Failed to load memory: {e}")
     
     def _save(self):
-        """Save memory to disk."""
+        """Save memory to disk - MERGE with existing data, don't overwrite (Opus Fix #3)."""
         try:
             self.data["metadata"]["last_updated"] = datetime.now().isoformat()
             self.memory_file.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Load existing data first
+            existing = {}
+            if self.memory_file.exists():
+                with open(self.memory_file, 'r', encoding='utf-8') as f:
+                    existing = json.load(f)
+            
+            # Update only Memory's keys
+            for key in ["decisions", "outcomes", "mistakes", "wisdom", "goals", "patterns", "metadata"]:
+                existing[key] = self.data[key]
+            
             with open(self.memory_file, 'w', encoding='utf-8') as f:
-                json.dump(self.data, f, indent=2, default=str)
+                json.dump(existing, f, indent=2, default=str)
         except Exception as e:
             # Memory save failure is CRITICAL
             raise RuntimeError(f"CRITICAL: Memory save failed: {e}") from e
