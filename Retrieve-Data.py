@@ -87,41 +87,155 @@ class DataRetriever:
         return results[:max_results]
     
     def _search_file(self, file_path: Path, query_terms: List[str], context_lines: int) -> List[RetrievedData]:
-        """Search a single file for query terms."""
+        """Search a single file for query terms with smart context extraction."""
         results = []
         
         try:
             with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                lines = f.readlines()
+                content = f.read()
             
-            for i, line in enumerate(lines):
-                line_lower = line.lower()
+            # Special handling for MASTER.md - extract complete definitions
+            if file_path.name == "MASTER.md":
+                return self._search_master_md(content, query_terms, file_path.name)
+            
+            # For other files, use paragraph-based search
+            lines = content.split('\n')
+            paragraphs = self._extract_paragraphs(lines)
+            
+            for para in paragraphs:
+                para_lower = para['text'].lower()
                 
                 # Calculate relevance score
-                matches = sum(1 for term in query_terms if term in line_lower)
+                matches = sum(1 for term in query_terms if term in para_lower)
                 if matches == 0:
                     continue
                 
-                # Calculate relevance (percentage of query terms matched)
+                # Better relevance scoring: matches + bonus for exact phrases
                 relevance = matches / len(query_terms)
                 
-                # Get context
-                context_before = ''.join(lines[max(0, i-context_lines):i])
-                context_after = ''.join(lines[i+1:min(len(lines), i+context_lines+1)])
+                # Bonus for exact phrase matches
+                query_phrase = ' '.join(query_terms)
+                if query_phrase in para_lower:
+                    relevance += 0.5
+                
+                # Cap at 1.0
+                relevance = min(relevance, 1.0)
                 
                 results.append(RetrievedData(
-                    content=line.strip(),
+                    content=para['text'].strip(),
                     source_file=file_path.name,
                     relevance_score=relevance,
-                    context_before=context_before.strip(),
-                    context_after=context_after.strip(),
-                    line_number=i+1
+                    context_before="",
+                    context_after="",
+                    line_number=para['line_start']
                 ))
         
         except Exception:
             pass  # Skip files that can't be read
         
         return results
+    
+    def _search_master_md(self, content: str, query_terms: List[str], filename: str) -> List[RetrievedData]:
+        """
+        Search MASTER.md with special handling for its format.
+        Extracts COMPLETE definition entries, not truncated lines.
+        """
+        results = []
+        lines = content.split('\n')
+        
+        i = 0
+        while i < len(lines):
+            line = lines[i]
+            line_lower = line.lower()
+            
+            # Look for definition entries: - **word** (n): definition
+            if line.strip().startswith('- **'):
+                # Extract the complete entry (may span multiple lines until next bullet)
+                entry_lines = [line]
+                j = i + 1
+                
+                # Keep reading until we hit another bullet point or empty section
+                while j < len(lines):
+                    next_line = lines[j].strip()
+                    # Stop at next bullet point or major section
+                    if next_line.startswith('- **') or next_line.startswith('## ') or next_line.startswith('# '):
+                        break
+                    # Include continuation lines
+                    if next_line:
+                        entry_lines.append(lines[j])
+                    j += 1
+                
+                # Combine into complete entry
+                full_entry = ' '.join(entry_lines).strip()
+                full_entry_lower = full_entry.lower()
+                
+                # Check if this entry matches query
+                matches = sum(1 for term in query_terms if term in full_entry_lower)
+                if matches > 0:
+                    relevance = matches / len(query_terms)
+                    
+                    # Bonus for matches in the word itself (before the colon)
+                    if ':' in full_entry:
+                        word_part = full_entry.split(':', 1)[0].lower()
+                        word_matches = sum(1 for term in query_terms if term in word_part)
+                        if word_matches > 0:
+                            relevance += 0.3
+                    
+                    # Bonus for exact phrase
+                    query_phrase = ' '.join(query_terms)
+                    if query_phrase in full_entry_lower:
+                        relevance += 0.5
+                    
+                    relevance = min(relevance, 1.0)
+                    
+                    results.append(RetrievedData(
+                        content=full_entry,
+                        source_file=filename,
+                        relevance_score=relevance,
+                        context_before="",
+                        context_after="",
+                        line_number=i+1
+                    ))
+                
+                # Move to the end of this entry
+                i = j
+            else:
+                i += 1
+        
+        return results
+    
+    def _extract_paragraphs(self, lines: List[str]) -> List[Dict[str, Any]]:
+        """
+        Extract logical paragraphs from lines.
+        A paragraph is consecutive non-empty lines.
+        """
+        paragraphs = []
+        current_para = []
+        para_start_line = 0
+        
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+            
+            if stripped:
+                if not current_para:
+                    para_start_line = i + 1
+                current_para.append(line)
+            else:
+                if current_para:
+                    paragraphs.append({
+                        'text': ' '.join(current_para),
+                        'line_start': para_start_line
+                    })
+                    current_para = []
+        
+        # Don't forget the last paragraph
+        if current_para:
+            paragraphs.append({
+                'text': ' '.join(current_para),
+                'line_start': para_start_line
+            })
+        
+        return paragraphs
     
     def retrieve_full_file(self, filename: str) -> Optional[str]:
         """Retrieve the full contents of a specific file."""

@@ -122,17 +122,14 @@ class MolecularAgent:
         )
         print("  ✓ Brain wired with 12 COMPLETE molecular components (Opus's full vision + Knowledge retrieval!)")
         
-        # Learning systems
-        self.mistakes = PreviousMistakes.MistakeTracker()
-        self.wisdom = Wisdom.WisdomExtractor(self.memory)
+        # Learning systems (FIXED: Use SAME instances Brain has!)
         self.habits = Habits.HabitTracker()
         self.auto_learner = AutoLearning.AutoLearningEngine(
-            self.brain, self.memory, self.wisdom,
-            self.mistakes, self.habits, None  # pattern_sync added below
+            self.brain, self.memory, self.wisdom,  # wisdom from line 97
+            self.mistakes, self.habits, None  # mistakes from line 98, pattern_sync added below
         )
         
-        # Support systems
-        self.rules = Rules.RuleEnforcer()
+        # Support systems (FIXED: rules already created at line 96)
         self.time_tracker = LocalTime.LocalTimeTracker()
         self.data_preserver = OriginalData.OriginalDataPreserver()
         self.prompt_breakdown = PromptBreakdown.PromptBreakdown()
@@ -146,7 +143,7 @@ class MolecularAgent:
         self.active_thought = CurrentActiveThought.ActiveThoughtTracker()
         self.planner = HighLevelPlanning.HighLevelPlanner()
         self.philosophy = HumanPhilosophy.HumanPhilosophyGuide()
-        self.apprehension = Apprehensive.ApprehensionMonitor()
+        # FIXED: apprehension already created at line 95 and injected into Brain
         
         # Integration
         self.callbacks = NaturalCallbacks.NaturalCallbackSystem()
@@ -228,7 +225,7 @@ class MolecularAgent:
         
         # Process through Brain
         self.active_thought.set_active_thought(
-            content=structure,
+            content=prompt,  # FIXED: Pass string, not dataclass (for JSON serialization)
             thought_type="processing_decision",
             context="Running through Brain pipeline"
         )

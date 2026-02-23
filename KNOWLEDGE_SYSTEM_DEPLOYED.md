@@ -230,22 +230,25 @@ Response with:
 
 ## Known Issues & Future Improvements
 
-### Search Relevance 📊
-- Current: Simple keyword matching
-- Issue: Common words ("what", "how") match many files
-- Future: Add stop word filtering, TF-IDF, or embeddings
+### Search System 🔍
+- **FIXED**: Now extracts COMPLETE entries from MASTER.md
+- **FIXED**: No more truncated definitions ("by b" → full text)
+- **UPGRADED**: Smart paragraph-based search for other files
+- **UPGRADED**: Better relevance scoring (phrase matching, word-in-definition bonuses)
+- Future: Could add TF-IDF or embeddings for massive scale (hundreds of docs)
 
 ### Response Quality 📝
 - Current: Uses raw retrieved excerpts
 - Future: Could synthesize multiple sources better
 - Future: Could format responses more naturally
 
-But these are **optimizations** - the core functionality is **FULLY OPERATIONAL**:
-✅ Retrieval works
+The core functionality is **FULLY OPERATIONAL AND UPGRADED**:
+✅ Retrieval works with COMPLETE context
 ✅ Predictions are molecular (no hedging)
 ✅ Wired into Brain
 ✅ Chat endpoint works
 ✅ Knowledge-grounded responses
+✅ No more truncated garbage
 
 ## Summary
 
