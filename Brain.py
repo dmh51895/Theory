@@ -5,27 +5,12 @@
 MOLECULAR AI PRINCIPLE: This is not a coordinator. It's a DECIDER.
 IT WORKS OR IT DOESN'T.
 
-Every component reports here. Every decision flows from here.
-No fallbacks. No "usually works". Committed outcomes only.
-
-The difference between this and typical AI orchestration:
-- LLM AI: "Try this, if it fails try that, if that fails return something"
-- MOLECULAR AI: "This IS the decision. If it fails, the system fails."
-
-Architecture:
-    Prompt → Conscious-Thought → Decision → Aftermath → Context
-
-Components report to Brain:
-- Conscious-Thought.py: What we're actively thinking
-- Metacognition.py: How we're thinking about our thinking
-- Goals.py: What we're trying to achieve
-- Ethics.py: Whether we should do this
-- Identifying-If-A-Fallback-Solution.py: Are we cheating?
-- Previous-Mistakes.py: Did we fuck this up before?
-- Consequences.py: What happens if we do this?
-- Aftermath-Of-Decision.py: What happened after we decided?
-
-Brain coordinates these, makes COMMITTED decisions, reports to context.
+CORRECTED VERSION:
+- All _analyze/_check/_detect methods now delegate to REAL components
+- Components injected via set_components() from background_agent.py
+- _save_state() no longer clobbers other JSON sections
+- _calculate_confidence() uses real clarity/molecular_score/ethics data
+- Stubs are flagged with _stub: True so you can detect when wiring is missing
 """
 
 import json
@@ -45,12 +30,13 @@ class ThoughtStream:
     ethical_assessment: Dict[str, Any]
     fallback_detection: Dict[str, Any]
     consequence_prediction: Dict[str, Any]
+    retrieved_data: Dict[str, Any]  # NEW: Knowledge retrieval results
+    prediction: Dict[str, Any]      # NEW: Molecular predictions
     decision: Dict[str, Any]
     aftermath: Dict[str, Any]
     timestamp: str
     
     def is_molecular(self) -> bool:
-        """Check if this thought stream represents molecular (committed) thinking."""
         return (
             not self.fallback_detection.get("is_fallback", True) and
             self.decision.get("committed", False) and
@@ -67,8 +53,8 @@ class BrainState:
     accumulated_wisdom: List[str] = None
     last_decision_timestamp: str = ""
     total_decisions: int = 0
-    molecular_decisions: int = 0  # Decisions without fallbacks
-    fallback_decisions: int = 0   # Decisions with escape hatches
+    molecular_decisions: int = 0
+    fallback_decisions: int = 0
     
     def __post_init__(self):
         if self.active_goals is None:
@@ -79,7 +65,6 @@ class BrainState:
             self.accumulated_wisdom = []
     
     def molecular_ratio(self) -> float:
-        """What percentage of decisions are truly committed (molecular)?"""
         if self.total_decisions == 0:
             return 0.0
         return self.molecular_decisions / self.total_decisions
@@ -89,22 +74,50 @@ class Brain:
     """
     The central decision-making orchestrator.
     
-    NOT a fallback coordinator. NOT an error swallower.
-    A COMMITTED DECISION ENGINE.
-    
-    If a component fails, Brain fails.
-    If a decision is wrong, Brain owns it.
-    If there's uncertainty, Brain acknowledges it but DECIDES ANYWAY.
-    
-    This is Molecular AI.
+    Components are injected via set_components() and actually used
+    in the pipeline. If a component isn't wired, the method returns
+    a stub dict with _stub: True.
     """
     
     def __init__(self, memory_file: str = "agent_memory.json"):
         self.memory_file = Path(memory_file)
         self.state = self._load_state()
         
-        # These will be imported dynamically to avoid circular dependencies
-        self._components = {}
+        # Component references - set by background_agent.py
+        self._conscious_analyzer = None
+        self._metacognition_monitor = None
+        self._goal_manager = None
+        self._ethics_checker = None
+        self._fallback_detector = None
+        self._consequence_predictor = None
+        self._apprehension_monitor = None
+        self._rules_enforcer = None
+        self._wisdom_extractor = None
+        self._mistake_tracker = None
+        self._data_retriever = None        # NEW: Knowledge retrieval
+        self._prediction_engine = None     # NEW: Molecular predictions
+    
+    def set_components(self, **components):
+        """
+        Inject real component instances from background_agent.py.
+        
+        Expected kwargs:
+            conscious, metacognition, goals, ethics, fallback_detector,
+            consequences, apprehension, rules, wisdom, mistakes,
+            retrieve_data, prediction_engine
+        """
+        self._conscious_analyzer = components.get('conscious')
+        self._metacognition_monitor = components.get('metacognition')
+        self._goal_manager = components.get('goals')
+        self._ethics_checker = components.get('ethics')
+        self._fallback_detector = components.get('fallback_detector')
+        self._consequence_predictor = components.get('consequences')
+        self._apprehension_monitor = components.get('apprehension')
+        self._rules_enforcer = components.get('rules')
+        self._wisdom_extractor = components.get('wisdom')
+        self._mistake_tracker = components.get('mistakes')
+        self._data_retriever = components.get('retrieve_data')
+        self._prediction_engine = components.get('prediction_engine')
     
     def _load_state(self) -> BrainState:
         """Load brain state from persistent memory."""
@@ -112,44 +125,56 @@ class Brain:
             try:
                 with open(self.memory_file, 'r', encoding='utf-8') as f:
                     data = json.load(f)
-                    # Convert dict to BrainState
-                    return BrainState(**{k: v for k, v in data.items() 
-                                        if k in BrainState.__annotations__})
+                    state_fields = {}
+                    valid_keys = ['active_goals', 'known_mistakes', 'accumulated_wisdom',
+                                  'last_decision_timestamp', 'total_decisions',
+                                  'molecular_decisions', 'fallback_decisions']
+                    for k in valid_keys:
+                        if k in data:
+                            state_fields[k] = data[k]
+                    return BrainState(**state_fields)
             except Exception:
                 pass
         return BrainState()
     
     def _save_state(self):
-        """Persist brain state to memory."""
+        """
+        Persist brain state to memory.
+        
+        CORRECTED: Loads existing JSON first, merges brain fields only,
+        so Goals.py / Wisdom.py sections are not clobbered.
+        """
         try:
             self.memory_file.parent.mkdir(parents=True, exist_ok=True)
+            
+            existing_data = {}
+            if self.memory_file.exists():
+                try:
+                    with open(self.memory_file, 'r', encoding='utf-8') as f:
+                        existing_data = json.load(f)
+                except Exception:
+                    pass
+            
+            brain_fields = {
+                'active_goals': self.state.active_goals,
+                'known_mistakes': self.state.known_mistakes,
+                'accumulated_wisdom': self.state.accumulated_wisdom,
+                'last_decision_timestamp': self.state.last_decision_timestamp,
+                'total_decisions': self.state.total_decisions,
+                'molecular_decisions': self.state.molecular_decisions,
+                'fallback_decisions': self.state.fallback_decisions,
+            }
+            existing_data.update(brain_fields)
+            
             with open(self.memory_file, 'w', encoding='utf-8') as f:
-                json.dump(asdict(self.state), f, indent=2, default=str)
+                json.dump(existing_data, f, indent=2, default=str)
         except Exception as e:
-            # Molecular principle: If we can't save state, FAIL LOUDLY
             raise RuntimeError(f"Brain state persistence failed: {e}") from e
     
     def process_prompt(self, prompt: str) -> Dict[str, Any]:
         """
-        The main decision pipeline.
-        
-        This is NOT try/except wrapped. If any stage fails, Brain fails.
-        This is MOLECULAR - committed, deterministic, accountable.
-        
-        Pipeline:
-        1. Conscious analysis - What is being asked?
-        2. Metacognitive check - Am I thinking about this correctly?
-        3. Goal alignment - Does this serve my goals?
-        4. Ethical assessment - Should I do this?
-        5. Fallback detection - Am I cheating with cop-outs?
-        6. Consequence prediction - What happens if I do this?
-        7. DECISION - Committed, no escape hatches
-        8. Aftermath analysis - What actually happened?
-        
-        Returns the complete thought stream.
+        The main decision pipeline. Each stage delegates to real components.
         """
-        
-        # Initialize thought stream
         stream = ThoughtStream(
             prompt=prompt,
             conscious_analysis={},
@@ -158,47 +183,38 @@ class Brain:
             ethical_assessment={},
             fallback_detection={},
             consequence_prediction={},
+            retrieved_data={},  # NEW
+            prediction={},      # NEW
             decision={},
             aftermath={},
             timestamp=datetime.now().isoformat()
         )
         
         # Stage 1: Conscious analysis
-        # What is the user actually asking for?
         stream.conscious_analysis = self._analyze_consciousness(prompt)
         
         # Stage 2: Metacognitive check
-        # Am I thinking about this the right way?
-        stream.metacognitive_check = self._check_metacognition(
-            prompt, stream.conscious_analysis
-        )
+        stream.metacognitive_check = self._check_metacognition(prompt, stream.conscious_analysis)
         
         # Stage 3: Goal alignment
-        # Does this serve my objectives?
-        stream.goal_alignment = self._check_goal_alignment(
-            prompt, stream.conscious_analysis
-        )
+        stream.goal_alignment = self._check_goal_alignment(prompt, stream.conscious_analysis)
         
         # Stage 4: Ethical assessment
-        # Should I do this?
-        stream.ethical_assessment = self._assess_ethics(
-            prompt, stream.conscious_analysis
-        )
+        stream.ethical_assessment = self._assess_ethics(prompt, stream.conscious_analysis)
         
         # Stage 5: Fallback detection
-        # Am I about to do the "quickly not efficiently" thing?
-        stream.fallback_detection = self._detect_fallback(
-            prompt, stream.conscious_analysis, stream.metacognitive_check
-        )
+        stream.fallback_detection = self._detect_fallback(prompt, stream.conscious_analysis, stream.metacognitive_check)
         
         # Stage 6: Consequence prediction
-        # What happens if I proceed?
-        stream.consequence_prediction = self._predict_consequences(
-            prompt, stream.conscious_analysis, stream.fallback_detection
-        )
+        stream.consequence_prediction = self._predict_consequences(prompt, stream.conscious_analysis, stream.fallback_detection)
         
-        # Stage 7: DECISION
-        # Make a COMMITTED decision. No escape hatches.
+        # Stage 7: Retrieve relevant knowledge
+        stream.retrieved_data = self._retrieve_knowledge(prompt)
+        
+        # Stage 8: Make molecular prediction
+        stream.prediction = self._make_prediction(prompt, stream.retrieved_data, stream.conscious_analysis)
+        
+        # Stage 9: DECISION (now informed by prediction)
         stream.decision = self._make_decision(stream)
         
         # Update state
@@ -213,9 +229,6 @@ class Brain:
         
         self._save_state()
         
-        # Stage 8: Aftermath (analyzed after execution)
-        # This gets called by Aftermath-Of-Decision.py after execution
-        
         return {
             "thought_stream": asdict(stream),
             "decision": stream.decision,
@@ -224,18 +237,11 @@ class Brain:
         }
     
     def analyze_aftermath(self, execution_result: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Called after a decision has been executed.
-        Analyzes what actually happened vs what was predicted.
-        
-        This is how Brain LEARNS - by seeing the consequences of committed decisions.
-        """
+        """Called after execution to compare prediction vs reality."""
         if not self.state.current_thought_stream:
             raise RuntimeError("No active thought stream to analyze aftermath for")
         
         stream = self.state.current_thought_stream
-        
-        # Compare prediction vs reality
         predicted = stream.consequence_prediction
         actual = execution_result
         
@@ -250,7 +256,6 @@ class Brain:
         
         stream.aftermath = aftermath
         
-        # If this was a mistake, record it
         if actual.get("success", True) == False or actual.get("error"):
             self.state.known_mistakes.append({
                 "prompt": stream.prompt,
@@ -259,76 +264,117 @@ class Brain:
                 "timestamp": aftermath["timestamp"]
             })
         
-        # If prediction was accurate and outcome was good, extract wisdom
         if aftermath["prediction_accuracy"] > 0.7 and actual.get("success", False):
             wisdom = self._extract_wisdom(stream, actual)
             if wisdom:
                 self.state.accumulated_wisdom.append(wisdom)
         
         self._save_state()
-        
         return aftermath
     
+    # =========================================================================
+    # COMPONENT DELEGATION - Real components or flagged stubs
+    # =========================================================================
+    
     def _analyze_consciousness(self, prompt: str) -> Dict[str, Any]:
-        """Delegate to Conscious-Thought.py"""
-        # Will be implemented by importing Conscious-Thought module
+        """Delegate to ConsciousAnalyzer if wired."""
+        if self._conscious_analyzer:
+            return self._conscious_analyzer.analyze(prompt)
         return {
-            "prompt_understood": True,
-            "key_intent": "extracted_from_prompt",
-            "ambiguities": [],
-            "assumptions_made": []
+            "prompt_understood": True, "key_intent": "extracted_from_prompt",
+            "ambiguities": [], "assumptions_made": [],
+            "confidence": 0.5, "clarity": 0.5, "_stub": True
         }
     
     def _check_metacognition(self, prompt: str, conscious: Dict) -> Dict[str, Any]:
-        """Delegate to Metacognition.py"""
+        """Delegate to MetacognitiveMonitor if wired."""
+        if self._metacognition_monitor:
+            return self._metacognition_monitor.analyze_thinking(conscious)
         return {
-            "thinking_approach_valid": True,
-            "cognitive_biases_detected": [],
-            "alternative_framings": []
+            "thinking_approach_valid": True, "cognitive_biases_detected": [],
+            "alternative_framings": [], "confidence_adjustment": 0.0, "_stub": True
         }
     
     def _check_goal_alignment(self, prompt: str, conscious: Dict) -> Dict[str, Any]:
-        """Delegate to Goals.py"""
+        """Delegate to GoalManager if wired."""
+        if self._goal_manager:
+            intent = conscious.get('key_intent', prompt)
+            return self._goal_manager.check_alignment(intent)
         return {
-            "aligns_with_goals": True,
-            "goal_conflicts": [],
-            "priority_level": "high"
+            "aligns_with_goals": True, "aligned_goals": [], "conflicts": [],
+            "priority": "high", "_stub": True
         }
     
     def _assess_ethics(self, prompt: str, conscious: Dict) -> Dict[str, Any]:
-        """Delegate to Ethics.py"""
+        """Delegate to EthicsChecker if wired."""
+        if self._ethics_checker:
+            approach = conscious.get('key_intent', 'unknown')
+            return self._ethics_checker.assess(prompt, conscious, approach)
         return {
-            "ethical_clearance": True,
-            "concerns": [],
-            "user_benefit": "high"
+            "ethical_clearance": True, "concerns": [],
+            "user_benefit": "high", "transparency": True, "_stub": True
         }
     
     def _detect_fallback(self, prompt: str, conscious: Dict, meta: Dict) -> Dict[str, Any]:
-        """Delegate to Identifying-If-A-Fallback-Solution.py"""
+        """Delegate to FallbackDetector if wired."""
+        if self._fallback_detector:
+            return self._fallback_detector.analyze_thought_process(conscious, meta)
         return {
-            "is_fallback": False,
-            "fallback_indicators": [],
-            "commitment_level": "full"
+            "is_fallback": False, "fallback_indicators": [],
+            "commitment_level": "full", "molecular_score": 1.0, "_stub": True
         }
     
     def _predict_consequences(self, prompt: str, conscious: Dict, fallback: Dict) -> Dict[str, Any]:
-        """Delegate to Consequences.py"""
+        """Delegate to ConsequencePredictor if wired."""
+        if self._consequence_predictor:
+            approach = conscious.get('key_intent', 'unknown')
+            is_fallback = fallback.get('is_fallback', False)
+            prediction = self._consequence_predictor.predict(
+                prompt, conscious, approach, is_fallback
+            )
+            return {
+                "likely_outcome": prediction.likely_outcome,
+                "risk_level": prediction.risk_level,
+                "confidence": prediction.confidence,
+                "failure_modes": prediction.failure_modes,
+                "user_impact": prediction.user_impact,
+                "reversible": prediction.reversible
+            }
         return {
-            "likely_outcome": "success",
-            "risk_level": "low",
-            "failure_modes": [],
-            "user_satisfaction": "high"
+            "likely_outcome": "success", "risk_level": "low",
+            "failure_modes": [], "user_satisfaction": "high", "_stub": True
         }
     
+    def _retrieve_knowledge(self, prompt: str) -> Dict[str, Any]:
+        """Delegate to DataRetriever if wired."""
+        if self._data_retriever:
+            try:
+                results = self._data_retriever.retrieve(prompt, max_results=5)
+                return {
+                    "retrieved": True,
+                    "results": [r.to_dict() for r in results],
+                    "num_results": len(results),
+                    "sources": list(set(r.source_file for r in results))
+                }
+            except Exception as e:
+                return {"retrieved": False, "error": str(e), "_stub": False}
+        return {"retrieved": False, "reason": "retriever not wired", "_stub": True}
+    
+    def _make_prediction(self, prompt: str, retrieved_data: Dict, conscious: Dict) -> Dict[str, Any]:
+        """Delegate to PredictionEngine if wired."""
+        if self._prediction_engine and retrieved_data.get("retrieved"):
+            try:
+                return self._prediction_engine.predict(
+                    prompt, 
+                    retrieved_data.get("results", []),
+                    conscious
+                )
+            except Exception as e:
+                return {"prediction": None, "error": str(e), "_stub": False}
+        return {"prediction": None, "reason": "no data or predictor not wired", "_stub": True}
+    
     def _make_decision(self, stream: ThoughtStream) -> Dict[str, Any]:
-        """
-        Make a COMMITTED decision.
-        
-        Molecular principle: No try/except. No fallbacks. No escape hatches.
-        The decision is the decision.
-        """
-        
-        # Check if we should proceed
+        """Make a COMMITTED decision using real analysis data."""
         should_proceed = (
             stream.conscious_analysis.get("prompt_understood", False) and
             stream.ethical_assessment.get("ethical_clearance", False) and
@@ -336,17 +382,16 @@ class Brain:
         )
         
         if not should_proceed:
-            # Don't make a decision we're not committed to
             return {
                 "action": "refuse",
                 "reason": self._format_refusal_reason(stream),
-                "committed": True,  # We're committed to refusing
+                "committed": True,
                 "has_escape_hatch": False,
+                "confidence": 0.0,
                 "timestamp": datetime.now().isoformat()
             }
         
-        # Extract the decision from conscious analysis
-        decision = {
+        return {
             "action": "execute",
             "approach": stream.conscious_analysis.get("key_intent", "unknown"),
             "committed": True,
@@ -354,50 +399,48 @@ class Brain:
             "confidence": self._calculate_confidence(stream),
             "timestamp": datetime.now().isoformat()
         }
-        
-        return decision
     
     def _format_refusal_reason(self, stream: ThoughtStream) -> str:
-        """If we refuse, explain why clearly."""
         reasons = []
-        
         if not stream.conscious_analysis.get("prompt_understood"):
             reasons.append("Prompt unclear - refusing to guess")
-        
         if not stream.ethical_assessment.get("ethical_clearance"):
             concerns = stream.ethical_assessment.get("concerns", [])
             reasons.append(f"Ethical concerns: {', '.join(concerns)}")
-        
         if stream.fallback_detection.get("is_fallback"):
             indicators = stream.fallback_detection.get("fallback_indicators", [])
-            reasons.append(f"Solution would be fallback-based: {', '.join(indicators)}")
-        
-        return " | ".join(reasons)
+            names = [i.get('pattern', str(i)) if isinstance(i, dict) else str(i) for i in indicators]
+            reasons.append(f"Fallback-based: {', '.join(names)}")
+        return " | ".join(reasons) if reasons else "Unknown reason"
     
     def _calculate_confidence(self, stream: ThoughtStream) -> float:
-        """Calculate decision confidence based on analysis quality."""
-        factors = [
-            stream.conscious_analysis.get("prompt_understood", 0),
-            stream.metacognitive_check.get("thinking_approach_valid", 0),
-            stream.goal_alignment.get("aligns_with_goals", 0),
-            stream.ethical_assessment.get("ethical_clearance", 0),
-            not stream.fallback_detection.get("is_fallback", True),
-        ]
+        """CORRECTED: Uses real clarity, molecular_score, ethics, goals."""
+        scores = []
         
-        # Convert bools to floats
-        numeric = [1.0 if f else 0.0 for f in factors]
-        return sum(numeric) / len(numeric)
+        clarity = stream.conscious_analysis.get("clarity",
+                    stream.conscious_analysis.get("confidence", 0.5))
+        scores.append(float(clarity))
+        
+        molecular_score = stream.fallback_detection.get("molecular_score", 1.0)
+        scores.append(float(molecular_score))
+        
+        ethical = 1.0 if stream.ethical_assessment.get("ethical_clearance", False) else 0.0
+        scores.append(ethical)
+        
+        aligned = 1.0 if stream.goal_alignment.get("aligns_with_goals", False) else 0.5
+        scores.append(aligned)
+        
+        meta_adj = stream.metacognitive_check.get("confidence_adjustment", 0.0)
+        
+        base = sum(scores) / len(scores)
+        return max(0.0, min(1.0, base + meta_adj))
     
     def _measure_prediction_accuracy(self, predicted: Dict, actual: Dict) -> float:
-        """Compare predicted vs actual outcomes."""
-        # Simple heuristic: did it succeed as predicted?
         predicted_success = predicted.get("likely_outcome") == "success"
         actual_success = actual.get("success", False)
-        
         return 1.0 if predicted_success == actual_success else 0.0
     
     def _extract_wisdom(self, stream: ThoughtStream, outcome: Dict) -> Optional[str]:
-        """Extract a wisdom statement from successful molecular decisions."""
         return (
             f"When {stream.conscious_analysis.get('key_intent', 'acting')}, "
             f"approach as {stream.decision.get('approach', 'direct')} "
@@ -405,7 +448,6 @@ class Brain:
         )
     
     def get_state_summary(self) -> str:
-        """Get human-readable brain state."""
         return (
             f"Brain State:\n"
             f"  Total decisions: {self.state.total_decisions}\n"
@@ -419,14 +461,11 @@ class Brain:
 
 
 if __name__ == "__main__":
-    # Test the brain
     brain = Brain()
-    
-    print("🧠 Brain initialized")
+    print("🧠 Brain initialized (no components wired - will use stubs)")
     print(brain.get_state_summary())
-    
-    # Test processing
     result = brain.process_prompt("Test if Brain can make molecular decisions")
-    print(f"\nDecision made: {result['decision']['action']}")
+    print(f"\nDecision: {result['decision']['action']}")
     print(f"Is molecular: {result['is_molecular']}")
     print(f"Confidence: {result['decision']['confidence']:.1%}")
+    print(f"Stub mode: {result['thought_stream']['conscious_analysis'].get('_stub', False)}")
