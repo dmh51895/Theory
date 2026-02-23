@@ -63,6 +63,10 @@ NaturalCallbacks = import_module('Natural-Callbacks')
 SynchronizedPatterns = import_module('Synchronized-Patterns')
 AutoLearning = import_module('auto_learning_engine')
 
+# Knowledge and prediction components
+RetrieveData = import_module('Retrieve-Data')
+CalculatedGuess = import_module('Calculated-Guess')
+
 
 class MolecularAgent:
     """
@@ -75,19 +79,48 @@ class MolecularAgent:
     def __init__(self):
         print("🧬 Initializing Molecular AI Agent...")
         
-        # Core systems
-        self.brain = Brain.Brain()
+        # Core systems - Memory FIRST (needed by some components)
         self.memory = Memory.Memory()
         
-        # Cognitive processes
+        # Cognitive processes - CREATE BEFORE BRAIN (Opus's complete 10-component architecture)
         self.conscious = ConsciousThought.ConsciousAnalyzer()
         self.metacognition = Metacognition.MetacognitiveMonitor()
         self.goals = Goals.GoalManager()
         self.ethics = Ethics.EthicsChecker()
         self.fallback_detector = IdentifyingIfFallback.FallbackDetector()
         self.consequences = Consequences.ConsequencePredictor()
+        
+        # Additional components from Opus's complete vision
+        self.apprehension = Apprehensive.ApprehensionMonitor()
+        self.rules = Rules.RuleEnforcer()
+        self.wisdom = Wisdom.WisdomExtractor(self.memory)  # needs memory_system
+        self.mistakes = PreviousMistakes.MistakeTracker()
+        
+        # Knowledge and prediction components
+        self.retrieve_data = RetrieveData.DataRetriever()
+        self.prediction_engine = CalculatedGuess.PredictionEngine()
+        
+        # Supporting systems
         self.motor_control = MotorControl.MotorControl()
         self.aftermath = AftermathOfDecision.AftermathAnalyzer()
+        
+        # NOW create Brain WITH ALL 12 components injected (Opus's complete architecture + Knowledge)
+        self.brain = Brain.Brain()
+        self.brain.set_components(
+            conscious=self.conscious,
+            metacognition=self.metacognition,
+            goals=self.goals,
+            ethics=self.ethics,
+            fallback_detector=self.fallback_detector,
+            consequences=self.consequences,
+            apprehension=self.apprehension,
+            rules=self.rules,
+            wisdom=self.wisdom,
+            mistakes=self.mistakes,
+            retrieve_data=self.retrieve_data,
+            prediction_engine=self.prediction_engine
+        )
+        print("  ✓ Brain wired with 12 COMPLETE molecular components (Opus's full vision + Knowledge retrieval!)")
         
         # Learning systems
         self.mistakes = PreviousMistakes.MistakeTracker()
@@ -120,10 +153,45 @@ class MolecularAgent:
         self.pattern_sync = SynchronizedPatterns.PatternSynchronizer()
         self.auto_learner.pattern_synchronizer = self.pattern_sync
         
+        # Register Motor-Control actions - Opus Fix #6
+        self._register_motor_actions()
+        
         print("✓ All components initialized")
         print(f"✓ Memory loaded: {len(self.memory.data['decisions'])} decisions")
         print(f"✓ Molecular ratio: {self.brain.state.molecular_ratio():.0%}")
         print()
+    
+    def _register_motor_actions(self):
+        """Register actions that Motor-Control can execute."""
+        
+        def execute_response(decision):
+            """Generate a response based on decision."""
+            return {
+                "status": "completed",
+                "approach": decision.get('approach', 'unknown'),
+                "committed": decision.get('committed', False),
+                "success": True
+            }
+        
+        def execute_file_operation(decision):
+            """Execute file-related operations."""
+            action = decision.get('approach', '')
+            # Basic file operations placeholder
+            return {"status": "completed", "action": action, "success": True}
+        
+        def execute_refusal(decision):
+            """Handle refusal decisions."""
+            return {
+                "refused": True,
+                "reason": decision.get('reason', 'unknown'),
+                "success": True  # Refusing successfully is still success
+            }
+        
+        # Register the actions
+        self.motor_control.register_action("response", execute_response)
+        self.motor_control.register_action("file_operation", execute_file_operation)
+        self.motor_control.register_action("refuse", execute_refusal)
+        print("  ✓ Motor-Control registered with 3 actions")
     
     def process_prompt(self, prompt: str) -> Dict[str, Any]:
         """
@@ -146,17 +214,15 @@ class MolecularAgent:
             context="New user prompt received"
         )
         
-        # Break down prompt (internal analysis)
+        # Break down prompt (internal analysis) - Opus Fix #8
         structure = self.prompt_breakdown.breakdown(prompt)
-        # Store clarity internally - no need to show
         
         if not structure.ready_for_execution:
-            # Only show this if clarification truly needed
-            # print(f"⚠️ Prompt not ready: {structure.missing_components}")
-            pass
+            # Return clarification request with detailed breakdown
             return {
                 'needs_clarification': True,
                 'missing': structure.missing_components,
+                'clarity': structure.overall_clarity,
                 'original_hash': original_hash
             }
         
@@ -168,6 +234,14 @@ class MolecularAgent:
         )
         
         result = self.brain.process_prompt(prompt)
+        
+        # Enhance result with prompt breakdown data
+        result['prompt_structure'] = {
+            'clarity': structure.overall_clarity,
+            'actions': [a.content for a in structure.actions],
+            'targets': [t.content for t in structure.targets if not t.requires_clarification],
+            'ready_for_execution': structure.ready_for_execution
+        }
         
         # Check rules compliance
         violations = self.rules.check_compliance(result)
@@ -200,9 +274,9 @@ class MolecularAgent:
                 'duration': 0.1
             }
             
-            # Analyze aftermath
+            # Analyze aftermath - Opus Fix #7: Pass thought_stream contents, not wrapper
             aftermath_result = self.aftermath.analyze(
-                decision_data=result,
+                decision_data=result.get('thought_stream', result),
                 execution_result=execution_result
             )
             
@@ -217,6 +291,79 @@ class MolecularAgent:
         
         self.active_thought.clear_active_thought()
         return result
+    
+    def process_chat(self, message: str) -> Dict[str, Any]:
+        """
+        Process conversational message through molecular pipeline.
+        
+        Unlike process_prompt(), this doesn't require "actions" -
+        it just processes through Brain for knowledge-grounded responses.
+        
+        Uses the full pipeline: retrieval → prediction → response
+        """
+        # Store message
+        original_hash = self.data_preserver.preserve(
+            data=message,
+            data_type="chat_message",
+            source="user_chat"
+        )
+        
+        # Process through Brain (includes retrieval + prediction)
+        result = self.brain.process_prompt(message)
+        
+        # Extract components
+        thought_stream = result.get('thought_stream', {})
+        retrieved_data = thought_stream.get('retrieved_data', {})
+        prediction = thought_stream.get('prediction', {})
+        decision = result.get('decision', {})
+        
+        # Generate natural response from prediction
+        response = self._format_chat_response(message, retrieved_data, prediction, decision)
+        
+        # Return chat-formatted result
+        return {
+            'response': response,
+            'retrieved_sources': retrieved_data.get('sources', []),
+            'prediction': prediction.get('prediction', ''),
+            'confidence': prediction.get('confidence', 0),
+            'molecular': result.get('is_molecular', False),
+            'molecular_ratio': result.get('molecular_ratio', 0),
+            'full_result': result
+        }
+    
+    def _format_chat_response(self, message: str, retrieved_data: Dict, prediction: Dict, decision: Dict) -> str:
+        """
+        Format a natural chat response using retrieved knowledge and prediction.
+        
+        NO HEDGING. Uses molecular prediction directly.
+        """
+        # If we have a prediction, use it
+        if prediction.get('prediction'):
+            response = prediction['prediction']
+            
+            # Add sources if retrieved
+            if retrieved_data.get('retrieved') and retrieved_data.get('sources'):
+                sources = retrieved_data['sources'][:3]  # Top 3
+                response += f"\n\n[Sources: {', '.join(sources)}]"
+            
+            return response
+        
+        # If no prediction but we have retrieved data, make an observation
+        if retrieved_data.get('retrieved') and retrieved_data.get('results'):
+            results = retrieved_data['results'][:2]
+            response = "Found relevant information:\n"
+            for r in results:
+                content = r.get('content', '')[:150]
+                source = r.get('source', 'unknown')
+                response += f"- {content}... (from {source})\n"
+            return response.strip()
+        
+        # Fallback: Brief acknowledgment
+        if decision.get('action') == 'refuse':
+            reason = decision.get('reason', 'Unable to process')
+            return f"Cannot proceed: {reason}"
+        
+        return "Processed through molecular pipeline."
     
     def run_continuous_learning(self, interval_minutes: int = 5):
         """

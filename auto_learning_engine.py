@@ -89,13 +89,13 @@ class AutoLearningEngine:
             # Extract anti-patterns from failure
             self.wisdom_extractor.extract_from_failed_decision(decision_data, outcome_data)
             
-            # Record mistake
-            self.mistake_tracker.record_mistake({
-                'decision': decision_data,
-                'outcome': outcome_data,
-                'root_cause': outcome_data.get('failure_reason', 'unknown'),
-                'context': decision_data.get('context', {})
-            })
+            # Record mistake - Opus Fix #4: Use correct signature
+            self.mistake_tracker.record_mistake(
+                prompt=decision_data.get('thought_stream', {}).get('prompt', 'unknown'),
+                approach=decision_data.get('decision', {}).get('approach', 'unknown'),
+                decision=decision_data.get('decision', {}),
+                outcome=outcome_data
+            )
             mistakes_recorded = 1
             patterns_extracted += 1
         
@@ -185,9 +185,9 @@ class AutoLearningEngine:
         }
     
     def get_knowledge_summary(self) -> Dict:
-        """Get summary of accumulated knowledge."""
+        """Get summary of accumulated knowledge - Opus Fix #5."""
         return {
-            'total_decisions': len(self.memory.decisions),
+            'total_decisions': len(self.memory.data['decisions']),
             'wisdom_items': len(self.wisdom_extractor.wisdom_items),
             'recorded_mistakes': len(self.mistake_tracker.mistakes),
             'learned_habits': len(self.habit_tracker.habits),
